@@ -7,40 +7,30 @@
 //
 import SwiftUI
 import Foundation
+import Supabase
 
 
 struct ContentView: View {
-    @State private var viewModel = UserViewModel()
-    @State private var newUser = ""
+
+    @State private var statusMessage = "Checking connection..."
+
     var body: some View {
-        VStack {
-            Text("Null Sector")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding(.bottom)
-            if viewModel.isLoading {
-                ProgressView("Loading users...")
-                Spacer()
-            } else {
-                //List of users
-                List {
-                    ForEach(viewModel.users){ user in
-                        HStack {
-                            Image(systemName: "person.fill")
-                            Text(user.name)
-                            Image(systemName: user.isVerified ? "checkmark.seal" : "")
-                        }
-                    }
-                }
+        Text(statusMessage)
+            .padding()
+            .task {
+                await testConnection()
             }
-            
-            
-                
-        }
-        .padding()
-        
-        .task{
-            await viewModel.loadData()
+    }
+
+    func testConnection() async {
+        do {
+            // Tries to get the current session — will be nil if no user is logged in
+            // but it still confirms the client initialised correctly
+            let session = try await supabase.auth.session
+            statusMessage = "Connected! User: \(session.user.email ?? "unknown")"
+        } catch {
+            // No session just means no one is logged in — that's fine
+            statusMessage = "Supabase connected. No active session yet."
         }
     }
 }
