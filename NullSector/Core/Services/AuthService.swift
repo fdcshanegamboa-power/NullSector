@@ -46,7 +46,11 @@ class AuthService {
     func getCurrentUser() async -> User? {
         do {
             let session = try await supabase.auth.session
-            return session.user
+            return User(
+                id: session.user.id,
+                email: session.user.email ?? "unknown@example.com",
+                createdAt: session.user.createdAt
+            )
         } catch {
             return nil
         }

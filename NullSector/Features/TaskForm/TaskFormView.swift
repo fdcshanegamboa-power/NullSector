@@ -26,219 +26,236 @@ struct TaskFormView: View {
         NavigationStack {
             ZStack {
                 Color.backgroundLight.ignoresSafeArea()
-                
-                Form {
 
-                    // MARK: - Title
-                    Section {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Task Title")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundStyle(Color.textSecondary)
-                            
-                            TextField("What needs to be done?", text: $viewModel.title)
-                                .font(.body)
-                                .textFieldStyle(.plain)
-                        }
-                        .listRowBackground(Color.cardBackground)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Description (optional)")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundStyle(Color.textSecondary)
-                            
-                            TextField("Add more details...", text: $viewModel.description, axis: .vertical)
-                                .font(.body)
-                                .textFieldStyle(.plain)
-                                .lineLimit(3...6)
-                        }
-                        .listRowBackground(Color.cardBackground)
-                    } header: {
-                        Label("Task Information", systemImage: "doc.text.fill")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.textPrimary)
-                    }
+                ScrollView {
+                    VStack(spacing: 16) {
 
-                    // MARK: - Priority
-                    Section {
-                        Picker("Priority", selection: $viewModel.priority) {
-                            Text("None").tag(Optional<Priority>.none)
-                            ForEach(Priority.allCases, id: \.self) { priority in
-                                HStack {
-                                    Circle()
-                                        .fill(priorityColor(priority))
-                                        .frame(width: 8, height: 8)
-                                    Text(priority.label)
+                        // MARK: - Task Info Card
+                        formCard {
+                            VStack(alignment: .leading, spacing: 16) {
+                                formSectionHeader(icon: "doc.text.fill", title: "Task Information")
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    fieldLabel("Title")
+                                    TextField("What needs to be done?", text: $viewModel.title)
+                                        .font(.body)
+                                        .padding(12)
+                                        .background(Color.backgroundLight)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(Color.brandPrimaryEnd.opacity(0.2), lineWidth: 1)
+                                        )
                                 }
-                                .tag(Optional(priority))
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    fieldLabel("Description (optional)")
+                                    TextField("Add more details...", text: $viewModel.description, axis: .vertical)
+                                        .font(.body)
+                                        .lineLimit(3...6)
+                                        .padding(12)
+                                        .background(Color.backgroundLight)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(Color.brandPrimaryEnd.opacity(0.2), lineWidth: 1)
+                                        )
+                                }
                             }
                         }
-                        .pickerStyle(.segmented)
-                        .listRowBackground(Color.cardBackground)
-                    } header: {
-                        Label("Priority Level", systemImage: "flag.fill")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.textPrimary)
-                    }
 
-                    // MARK: - Due Date
-                    Section {
-                        Toggle(isOn: $viewModel.hasDueDate) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "calendar")
-                                    .foregroundStyle(Color.brandPrimaryEnd)
-                                Text("Set due date")
-                                    .fontWeight(.medium)
+                        // MARK: - Priority Card
+                        formCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                formSectionHeader(icon: "flag.fill", title: "Priority Level")
+
+                                HStack(spacing: 10) {
+                                    priorityOption(nil, label: "None", color: Color.textSecondary)
+                                    ForEach(Priority.allCases, id: \.self) { priority in
+                                        priorityOption(priority, label: priority.rawValue.capitalized, color: priority.color)
+                                    }
+                                }
                             }
                         }
-                        .tint(Color.brandPrimaryEnd)
-                        .listRowBackground(Color.cardBackground)
 
-                        if viewModel.hasDueDate {
-                            DatePicker(
-                                "Due",
-                                selection: Binding(
-                                    get: { viewModel.dueDate ?? Date() },
-                                    set: { viewModel.dueDate = $0 }
-                                ),
-                                in: Date()...,
-                                displayedComponents: [.date, .hourAndMinute]
-                            )
-                            .datePickerStyle(.compact)
-                            .listRowBackground(Color.cardBackground)
-                        }
-                    } header: {
-                        Label("Schedule", systemImage: "calendar.circle.fill")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.textPrimary)
-                    }
+                        // MARK: - Schedule Card
+                        formCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                formSectionHeader(icon: "calendar.circle.fill", title: "Schedule")
 
-                    // MARK: - Reminder
-                    Section {
-                        Toggle(isOn: $viewModel.hasReminder) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "bell.fill")
-                                    .foregroundStyle(.purple)
-                                Text("Set reminder")
-                                    .fontWeight(.medium)
+                                // Due Date Toggle
+                                HStack {
+                                    HStack(spacing: 10) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.brandPrimaryEnd.opacity(0.12))
+                                                .frame(width: 32, height: 32)
+                                            Image(systemName: "calendar")
+                                                .font(.system(size: 14))
+                                                .foregroundStyle(Color.brandPrimaryEnd)
+                                        }
+                                        Text("Due date")
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(Color.textPrimary)
+                                    }
+                                    Spacer()
+                                    Toggle("", isOn: $viewModel.hasDueDate)
+                                        .tint(Color.brandPrimaryEnd)
+                                        .labelsHidden()
+                                }
+
+                                if viewModel.hasDueDate {
+                                    Divider()
+
+                                    DatePicker(
+                                        "Due",
+                                        selection: Binding(
+                                            get: { viewModel.dueDate ?? Date() },
+                                            set: { viewModel.dueDate = $0 }
+                                        ),
+                                        in: Date()...,
+                                        displayedComponents: [.date, .hourAndMinute]
+                                    )
+                                    .datePickerStyle(.compact)
+                                    .tint(Color.brandPrimaryEnd)
+                                }
                             }
                         }
-                        .tint(.purple)
-                        .disabled(!viewModel.hasDueDate)
-                        .listRowBackground(Color.cardBackground)
 
-                        if viewModel.hasReminder && viewModel.hasDueDate {
-                            DatePicker(
-                                "Remind me at",
-                                selection: Binding(
-                                    get: { viewModel.reminderAt ?? Date() },
-                                    set: { viewModel.reminderAt = $0 }
-                                ),
-                                in: Date()...,
-                                displayedComponents: [.date, .hourAndMinute]
-                            )
-                            .datePickerStyle(.compact)
-                            .listRowBackground(Color.cardBackground)
-                        }
+                        // MARK: - Reminder Card
+                        formCard {
+                            VStack(alignment: .leading, spacing: 14) {
+                                formSectionHeader(icon: "bell.circle.fill", title: "Reminder")
 
-                        if !viewModel.hasDueDate {
-                            HStack(spacing: 8) {
-                                Image(systemName: "info.circle.fill")
-                                    .foregroundStyle(Color.textSecondary)
-                                Text("Set a due date first to enable reminders.")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.textSecondary)
+                                HStack {
+                                    HStack(spacing: 10) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.purple.opacity(0.12))
+                                                .frame(width: 32, height: 32)
+                                            Image(systemName: "bell.fill")
+                                                .font(.system(size: 14))
+                                                .foregroundStyle(.purple)
+                                        }
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Set reminder")
+                                                .font(.subheadline)
+                                                .fontWeight(.medium)
+                                                .foregroundStyle(
+                                                    viewModel.hasDueDate
+                                                        ? Color.textPrimary
+                                                        : Color.textSecondary
+                                                )
+                                            if !viewModel.hasDueDate {
+                                                Text("Requires a due date")
+                                                    .font(.caption2)
+                                                    .foregroundStyle(Color.textSecondary)
+                                            }
+                                        }
+                                    }
+                                    Spacer()
+                                    Toggle("", isOn: $viewModel.hasReminder)
+                                        .tint(.purple)
+                                        .labelsHidden()
+                                        .disabled(!viewModel.hasDueDate)
+                                }
+
+                                if viewModel.hasReminder && viewModel.hasDueDate {
+                                    Divider()
+
+                                    DatePicker(
+                                        "Remind me",
+                                        selection: Binding(
+                                            get: { viewModel.reminderAt ?? Date() },
+                                            set: { viewModel.reminderAt = $0 }
+                                        ),
+                                        in: Date()...,
+                                        displayedComponents: [.date, .hourAndMinute]
+                                    )
+                                    .datePickerStyle(.compact)
+                                    .tint(.purple)
+                                }
                             }
-                            .listRowBackground(Color.cardBackground)
                         }
-                    } header: {
-                        Label("Notifications", systemImage: "bell.circle.fill")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.textPrimary)
-                    }
 
-                    // MARK: - Error
-                    if let error = viewModel.errorMessage {
-                        Section {
-                            HStack(spacing: 8) {
+                        // MARK: - Error
+                        if let error = viewModel.errorMessage {
+                            HStack(spacing: 10) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundStyle(.red)
                                 Text(error)
                                     .font(.footnote)
                                     .foregroundStyle(.red)
                             }
-                            .listRowBackground(Color.red.opacity(0.1))
+                            .padding(14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.red.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal, 16)
                         }
+
+                        Spacer().frame(height: 8)
                     }
+                    .padding(.top, 16)
+                    .padding(.bottom, 32)
                 }
-                .scrollContentBackground(.hidden)
-                
-                // Saving overlay
+
+                // MARK: - Saving Overlay
                 if viewModel.isLoading {
-                    ZStack {
-                        Color.black.opacity(0.3)
-                            .ignoresSafeArea()
-                        
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .tint(Color.brandPrimaryEnd)
-                            
-                            Text("Saving task...")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(Color.textPrimary)
-                        }
-                        .padding(32)
-                        .background(Color.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
-                        .shadow(color: .black.opacity(0.2), radius: 20)
+                    Color.black.opacity(0.25).ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.4)
+                            .tint(Color.brandPrimaryEnd)
+                        Text("Saving task...")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.textPrimary)
                     }
+                    .padding(32)
+                    .background(Color.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: .black.opacity(0.15), radius: 20)
                 }
             }
             .navigationTitle(viewModel.isEditMode ? "Edit Task" : "New Task")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
 
-                // MARK: - Cancel
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         dismiss()
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "xmark.circle.fill")
-                            Text("Cancel")
-                        }
-                        .foregroundStyle(Color.textSecondary)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.textSecondary)
+                            .frame(width: 28, height: 28)
+                            .background(Color.textSecondary.opacity(0.1))
+                            .clipShape(Circle())
                     }
                     .disabled(viewModel.isLoading)
                 }
 
-                // MARK: - Save
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        Task {
-                            await viewModel.save()
-                        }
+                        Task { await viewModel.save() }
                     } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "checkmark.circle.fill")
-                            Text("Save")
-                        }
-                        .fontWeight(.semibold)
-                        .foregroundStyle(
-                            viewModel.title.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isLoading
-                                ? Color.textSecondary
-                                : Color.brandPrimaryEnd
-                        )
+                        Text("Save")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 7)
+                            .background(
+                                viewModel.title.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isLoading
+                                    ? Color.textSecondary.opacity(0.4)
+                                    : Color.brandPrimaryEnd
+                            )
+                            .clipShape(Capsule())
                     }
-                    .disabled(viewModel.title.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isLoading)
+                    .disabled(
+                        viewModel.title.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isLoading
+                    )
                 }
             }
             .onChange(of: viewModel.didSave) {
@@ -251,16 +268,56 @@ struct TaskFormView: View {
             }
         }
     }
-    
-    // MARK: - Helper Functions
-    private func priorityColor(_ priority: Priority) -> Color {
-        switch priority {
-        case .low:
-            return .blue
-        case .medium:
-            return .orange
-        case .high:
-            return .red
+
+    // MARK: - Priority Option Button
+    private func priorityOption(_ priority: Priority?, label: String, color: Color) -> some View {
+        let isSelected = viewModel.priority == priority
+
+        return Button {
+            viewModel.priority = priority
+        } label: {
+            Text(label)
+                .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                .foregroundStyle(isSelected ? .white : color)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(isSelected ? color : color.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(color.opacity(isSelected ? 0 : 0.3), lineWidth: 1)
+                )
         }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Reusable Helpers
+    private func formCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(16)
+        .brandCard()
+        .padding(.horizontal, 16)
+    }
+
+    private func formSectionHeader(icon: String, title: String) -> some View {
+        Label {
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.textPrimary)
+        } icon: {
+            Image(systemName: icon)
+                .foregroundStyle(Color.brandPrimaryEnd)
+                .font(.system(size: 14))
+        }
+    }
+
+    private func fieldLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(Color.textSecondary)
+            .textCase(.uppercase)
+            .tracking(0.5)
     }
 }

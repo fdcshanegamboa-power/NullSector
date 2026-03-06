@@ -15,6 +15,7 @@ class AuthViewModel {
     var isLoggedIn: Bool = false
     var isLoading: Bool = false
     var errorMessage: String? = nil
+    var currentUser: User? = nil
     
     private let authService: AuthService
     
@@ -25,8 +26,15 @@ class AuthViewModel {
     func checkSession() async {
         do {
             let session = try await supabase.auth.session
+            currentUser = User(
+                id: session.user.id,
+                email: session.user.email ?? "unknown@example.com",
+                createdAt: session.user.createdAt
+            )
+            isLoggedIn = true
         } catch {
             isLoggedIn = false
+            currentUser = nil
         }
     }
     
@@ -39,7 +47,7 @@ class AuthViewModel {
         
         do {
             try await authService.signUp(email: email, password: password)
-            isLoggedIn = true
+            await checkSession() // Fetch user data after sign up
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -52,7 +60,7 @@ class AuthViewModel {
         
         do {
             try await authService.signIn(email: email, password: password)
-            isLoggedIn = true
+            await checkSession() // Fetch user data after sign in
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -67,6 +75,7 @@ class AuthViewModel {
         do {
             try await authService.signOut()
             isLoggedIn = false
+            currentUser = nil
         } catch {
             errorMessage = error.localizedDescription
         }

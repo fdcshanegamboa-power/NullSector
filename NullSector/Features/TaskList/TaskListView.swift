@@ -34,6 +34,15 @@ struct TaskListView: View {
             }
             .navigationTitle("My Tasks")
             .toolbar {
+                // MARK: - Profile Menu
+                ToolbarItem(placement: .topBarLeading) {
+                    ProfileMenuView(user: authViewModel.currentUser) {
+                        Task {
+                            await authViewModel.signOut()
+                        }
+                    }
+                }
+                
                 // MARK: - Add Button
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -42,23 +51,6 @@ struct TaskListView: View {
                         Image(systemName: "plus.circle.fill")
                             .font(.title3)
                             .foregroundStyle(Color.brandPrimaryEnd)
-                    }
-                }
-
-                // MARK: - Sign Out Button
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        Task {
-                            await authViewModel.signOut()
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                            Text("Sign Out")
-                        }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.red)
                     }
                 }
 
