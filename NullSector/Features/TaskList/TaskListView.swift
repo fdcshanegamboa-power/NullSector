@@ -18,13 +18,18 @@ struct TaskListView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.isLoading && viewModel.tasks.isEmpty {
-                    ProgressView("Loading tasks...")
-                } else if viewModel.tasks.isEmpty {
-                    emptyStateView
-                } else {
-                    taskList
+            ZStack {
+                // Background
+                Color.backgroundLight.ignoresSafeArea()
+                
+                Group {
+                    if viewModel.isLoading && viewModel.tasks.isEmpty {
+                        loadingView
+                    } else if viewModel.tasks.isEmpty {
+                        emptyStateView
+                    } else {
+                        taskList
+                    }
                 }
             }
             .navigationTitle("My Tasks")
@@ -34,28 +39,46 @@ struct TaskListView: View {
                     Button {
                         showAddTask = true
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(Color.brandPrimaryEnd)
                     }
                 }
 
                 // MARK: - Sign Out Button
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Sign Out") {
+                    Button {
                         Task {
                             await authViewModel.signOut()
                         }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                            Text("Sign Out")
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.red)
                     }
-                    .foregroundStyle(.red)
                 }
 
                 // MARK: - Filter Toggle
                 ToolbarItem(placement: .bottomBar) {
-                    Toggle(isOn: $viewModel.showCompleted) {
-                        Text("Show Completed")
-                            .font(.subheadline)
-                    }
-                    .onChange(of: viewModel.showCompleted) {
-                        Task { await viewModel.fetchTasks() }
+                    HStack(spacing: 12) {
+                        Toggle(isOn: $viewModel.showCompleted) {
+                            Label("Show Completed", systemImage: "checkmark.circle")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        .tint(Color.brandPrimaryEnd)
+                        .onChange(of: viewModel.showCompleted) {
+                            Task { await viewModel.fetchTasks() }
+                        }
+                        
+                        if viewModel.isLoading && !viewModel.tasks.isEmpty {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
                     }
                 }
             }
@@ -94,55 +117,99 @@ struct TaskListView: View {
 
     // MARK: - Task List
     private var taskList: some View {
-        List {
-            ForEach(viewModel.tasks) { task in
-                TaskRowView(task: task) {
-                    Task {
-                        await viewModel.toggleCompletion(task: task)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    selectedTask = task
-                }
-                .swipeActions(edge: .leading) {
-                    Button{
-                        taskToEdit = task
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                    .tint(.blue)
-                }
-                
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(viewModel.tasks) { task in
+                    TaskRowView(task: task) {
                         Task {
-                            await viewModel.deleteTask(task)
+                            await viewModel.toggleCompletion(task: task)
                         }
-                    } label: {
-                        Label("Delete", systemImage: "trash")
                     }
+                    .brandCard()
+                    .padding(.horizontal, 16)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        selectedTask = task
+                    }
+                    .contextMenu {
+                        Button {
+                            taskToEdit = task
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        
+                        Button(role: .destructive) {
+                            Task {
+                                await viewModel.deleteTask(task)
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
+            .padding(.vertical, 16)
         }
-        .listStyle(.plain)
     }
 
     // MARK: - Empty State
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 64))
-                .foregroundStyle(.secondary)
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(Color.brandGradient)
+                    .frame(width: 120, height: 120)
+                    .opacity(0.15)
+                
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(Color.brandGradient)
+            }
 
-            Text("No Tasks Yet")
-                .font(.title2)
-                .fontWeight(.semibold)
+            VStack(spacing: 8) {
+                Text("No Tasks Yet")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Color.textPrimary)
 
-            Text("Tap the + button to add your first task.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+                Text("Tap the + button to add your first task\nand start organizing your day.")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
+            
+            Button {
+                showAddTask = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Create Task")
+                        .fontWeight(.semibold)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Color.brandGradient)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(color: Color.brandPrimaryEnd.opacity(0.3), radius: 8, y: 4)
+            }
+            .padding(.top, 8)
         }
         .padding()
+    }
+    
+    // MARK: - Loading View
+    private var loadingView: some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(Color.brandPrimaryEnd)
+            
+            Text("Loading tasks...")
+                .font(.subheadline)
+                .foregroundStyle(Color.textSecondary)
+        }
     }
 }

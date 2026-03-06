@@ -13,6 +13,8 @@ class TaskDetailViewModel {
 
     var task: TodoTask
     var errorMessage: String?
+    var isLoading: Bool = false
+    var isTogglingCompletion: Bool = false
 
     private let taskService: TaskService
 
@@ -23,6 +25,9 @@ class TaskDetailViewModel {
 
     // MARK: - Toggle Completion
     func toggleCompletion() async {
+        isTogglingCompletion = true
+        defer { isTogglingCompletion = false }
+        
         do {
             let updated = try await taskService.toggleCompletion(task: task)
             task = updated
@@ -33,6 +38,9 @@ class TaskDetailViewModel {
 
     // MARK: - Fetch Task
     func fetchTask() async {
+        isLoading = true
+        defer { isLoading = false }
+        
         do {
             let tasks = try await taskService.getTasks()
             if let updatedTask = tasks.first(where: { $0.id == task.id }) {

@@ -24,73 +24,181 @@ struct TaskFormView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
+            ZStack {
+                Color.backgroundLight.ignoresSafeArea()
+                
+                Form {
 
-                // MARK: - Title
-                Section("Task") {
-                    TextField("Title", text: $viewModel.title)
-                    TextField("Description (optional)", text: $viewModel.description, axis: .vertical)
-                        .lineLimit(3, reservesSpace: true)
-                }
+                    // MARK: - Title
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Task Title")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(Color.textSecondary)
+                            
+                            TextField("What needs to be done?", text: $viewModel.title)
+                                .font(.body)
+                                .textFieldStyle(.plain)
+                        }
+                        .listRowBackground(Color.cardBackground)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Description (optional)")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(Color.textSecondary)
+                            
+                            TextField("Add more details...", text: $viewModel.description, axis: .vertical)
+                                .font(.body)
+                                .textFieldStyle(.plain)
+                                .lineLimit(3...6)
+                        }
+                        .listRowBackground(Color.cardBackground)
+                    } header: {
+                        Label("Task Information", systemImage: "doc.text.fill")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.textPrimary)
+                    }
 
-                // MARK: - Priority
-                Section("Priority") {
-                    Picker("Priority", selection: $viewModel.priority) {
-                        Text("None").tag(Optional<Priority>.none)
-                        ForEach(Priority.allCases, id: \.self) { priority in
-                            Text(priority.label).tag(Optional(priority))
+                    // MARK: - Priority
+                    Section {
+                        Picker("Priority", selection: $viewModel.priority) {
+                            Text("None").tag(Optional<Priority>.none)
+                            ForEach(Priority.allCases, id: \.self) { priority in
+                                HStack {
+                                    Circle()
+                                        .fill(priorityColor(priority))
+                                        .frame(width: 8, height: 8)
+                                    Text(priority.label)
+                                }
+                                .tag(Optional(priority))
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .listRowBackground(Color.cardBackground)
+                    } header: {
+                        Label("Priority Level", systemImage: "flag.fill")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.textPrimary)
+                    }
+
+                    // MARK: - Due Date
+                    Section {
+                        Toggle(isOn: $viewModel.hasDueDate) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "calendar")
+                                    .foregroundStyle(Color.brandPrimaryEnd)
+                                Text("Set due date")
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .tint(Color.brandPrimaryEnd)
+                        .listRowBackground(Color.cardBackground)
+
+                        if viewModel.hasDueDate {
+                            DatePicker(
+                                "Due",
+                                selection: Binding(
+                                    get: { viewModel.dueDate ?? Date() },
+                                    set: { viewModel.dueDate = $0 }
+                                ),
+                                in: Date()...,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                            .datePickerStyle(.compact)
+                            .listRowBackground(Color.cardBackground)
+                        }
+                    } header: {
+                        Label("Schedule", systemImage: "calendar.circle.fill")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.textPrimary)
+                    }
+
+                    // MARK: - Reminder
+                    Section {
+                        Toggle(isOn: $viewModel.hasReminder) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "bell.fill")
+                                    .foregroundStyle(.purple)
+                                Text("Set reminder")
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .tint(.purple)
+                        .disabled(!viewModel.hasDueDate)
+                        .listRowBackground(Color.cardBackground)
+
+                        if viewModel.hasReminder && viewModel.hasDueDate {
+                            DatePicker(
+                                "Remind me at",
+                                selection: Binding(
+                                    get: { viewModel.reminderAt ?? Date() },
+                                    set: { viewModel.reminderAt = $0 }
+                                ),
+                                in: Date()...,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                            .datePickerStyle(.compact)
+                            .listRowBackground(Color.cardBackground)
+                        }
+
+                        if !viewModel.hasDueDate {
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundStyle(Color.textSecondary)
+                                Text("Set a due date first to enable reminders.")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textSecondary)
+                            }
+                            .listRowBackground(Color.cardBackground)
+                        }
+                    } header: {
+                        Label("Notifications", systemImage: "bell.circle.fill")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.textPrimary)
+                    }
+
+                    // MARK: - Error
+                    if let error = viewModel.errorMessage {
+                        Section {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.red)
+                                Text(error)
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
+                            .listRowBackground(Color.red.opacity(0.1))
                         }
                     }
-                    .pickerStyle(.segmented)
                 }
-
-                // MARK: - Due Date
-                Section("Due Date") {
-                    Toggle("Set due date", isOn: $viewModel.hasDueDate)
-
-                    if viewModel.hasDueDate {
-                        DatePicker(
-                            "Due",
-                            selection: Binding(
-                                get: { viewModel.dueDate ?? Date() },
-                                set: { viewModel.dueDate = $0 }
-                            ),
-                            in: Date()...,
-                            displayedComponents: [.date, .hourAndMinute]
-                        )
-                    }
-                }
-
-                // MARK: - Reminder
-                Section("Reminder") {
-                    Toggle("Set reminder", isOn: $viewModel.hasReminder)
-                        .disabled(!viewModel.hasDueDate)
-
-                    if viewModel.hasReminder && viewModel.hasDueDate {
-                        DatePicker(
-                            "Remind me at",
-                            selection: Binding(
-                                get: { viewModel.reminderAt ?? Date() },
-                                set: { viewModel.reminderAt = $0 }
-                            ),
-                            in: Date()...,
-                            displayedComponents: [.date, .hourAndMinute]
-                        )
-                    }
-
-                    if !viewModel.hasDueDate {
-                        Text("Set a due date first to enable reminders.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                // MARK: - Error
-                if let error = viewModel.errorMessage {
-                    Section {
-                        Text(error)
-                            .foregroundStyle(.red)
-                            .font(.footnote)
+                .scrollContentBackground(.hidden)
+                
+                // Saving overlay
+                if viewModel.isLoading {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                        
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .tint(Color.brandPrimaryEnd)
+                            
+                            Text("Saving task...")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(Color.textPrimary)
+                        }
+                        .padding(32)
+                        .background(Color.cardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: .black.opacity(0.2), radius: 20)
                     }
                 }
             }
@@ -100,19 +208,36 @@ struct TaskFormView: View {
 
                 // MARK: - Cancel
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
+                    Button {
                         dismiss()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark.circle.fill")
+                            Text("Cancel")
+                        }
+                        .foregroundStyle(Color.textSecondary)
                     }
+                    .disabled(viewModel.isLoading)
                 }
 
                 // MARK: - Save
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
+                    Button {
                         Task {
                             await viewModel.save()
                         }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Save")
+                        }
+                        .fontWeight(.semibold)
+                        .foregroundStyle(
+                            viewModel.title.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isLoading
+                                ? Color.textSecondary
+                                : Color.brandPrimaryEnd
+                        )
                     }
-                    .fontWeight(.semibold)
                     .disabled(viewModel.title.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isLoading)
                 }
             }
@@ -124,6 +249,18 @@ struct TaskFormView: View {
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - Helper Functions
+    private func priorityColor(_ priority: Priority) -> Color {
+        switch priority {
+        case .low:
+            return .blue
+        case .medium:
+            return .orange
+        case .high:
+            return .red
         }
     }
 }
