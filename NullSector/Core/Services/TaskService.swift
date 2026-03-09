@@ -20,7 +20,8 @@ class TaskService {
     // MARK: - Fetch & Filter
     func getTasks(
         searchText: String = "",
-        showCompleted: Bool = true
+        showCompleted: Bool = true,
+        sortOption: TaskListViewModel.SortOption = .createdNewest
     ) async throws -> [TodoTask] {
 
         var tasks = try await repository.fetchAll()
@@ -38,17 +39,29 @@ class TaskService {
             }
         }
 
-        // Sort: incomplete first, then by due date, then by priority
-        tasks.sort {
-            if $0.isCompleted != $1.isCompleted {
-                return !$0.isCompleted
+        // Apply sort
+        tasks.sort { a, b in
+            // Always keep incomplete tasks above completed ones
+            if a.isCompleted != b.isCompleted {
+                return !a.isCompleted
             }
-            if let d0 = $0.dueDate, let d1 = $1.dueDate {
-                return d0 < d1
+
+            switch sortOption {
+            case .createdNewest:
+                return a.createdAt > b.createdAt
+            case .createdOldest:
+                return a.createdAt < b.createdAt
+            case .dueDateAsc:
+                return compareDates(a.dueDate, b.dueDate, ascending: true)
+            case .dueDateDesc:
+                return compareDates(a.dueDate, b.dueDate, ascending: false)
+            case .titleAZ:
+                return a.title.localizedCompare(b.title) == .orderedAscending
+            case .titleZA:
+                return a.title.localizedCompare(b.title) == .orderedDescending
+            case .priority:
+                return priorityRank(a.priority) < priorityRank(b.priority)
             }
-            if $0.dueDate != nil { return true }
-            if $1.dueDate != nil { return false }
-            return priorityRank($0.priority) < priorityRank($1.priority)
         }
 
         return tasks
@@ -63,7 +76,6 @@ class TaskService {
         reminderAt: Date? = nil
     ) async throws -> TodoTask {
 
-        // Validation
         let trimmed = title.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else {
             throw TaskError.emptyTitle
@@ -94,7 +106,6 @@ class TaskService {
         reminderAt: Date? = nil
     ) async throws -> TodoTask {
 
-        // Validate title if it's being changed
         if let title = title {
             let trimmed = title.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty else {
@@ -125,6 +136,17 @@ class TaskService {
     }
 
     // MARK: - Helpers
+
+    /// Sorts by due date, pushing nil dates to the bottom regardless of direction.
+    private func compareDates(_ a: Date?, _ b: Date?, ascending: Bool) -> Bool {
+        switch (a, b) {
+        case let (a?, b?): return ascending ? a < b : a > b
+        case (_?, nil):    return true   // a has date, b doesn't → a wins
+        case (nil, _?):    return false  // b has date, a doesn't → b wins
+        case (nil, nil):   return false
+        }
+    }
+
     private func priorityRank(_ priority: Priority?) -> Int {
         switch priority {
         case .high:   return 0

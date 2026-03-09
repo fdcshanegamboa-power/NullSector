@@ -64,6 +64,38 @@ class NotificationService {
             .removePendingNotificationRequests(withIdentifiers: [taskId.uuidString])
     }
 
+    // MARK: - Schedule Reminder Notification
+    func scheduleReminderNotification(for reminder: Reminder) {
+        guard reminder.remindAt > Date() else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Reminder"
+        content.body = reminder.message
+        content.sound = .default
+
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: reminder.remindAt
+        )
+
+        let trigger = UNCalendarNotificationTrigger(
+            dateMatching: components,
+            repeats: false
+        )
+
+        let request = UNNotificationRequest(
+            identifier: reminder.id.uuidString,
+            content: content,
+            trigger: trigger
+        )
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Failed to schedule reminder notification: \(error)")
+            }
+        }
+    }
+
     // MARK: - Schedule Daily Reminder
     func scheduleDailyReminder(at hour: Int, minute: Int) {
         let content = UNMutableNotificationContent()

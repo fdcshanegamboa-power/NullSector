@@ -4,37 +4,77 @@
 //
 //  Created by Shane Gamboa - INTERN on 2/24/26.
 //
-//
-import SwiftUI
-import Foundation
-import Supabase
 
+import SwiftUI
 
 struct ContentView: View {
-
-    @State private var statusMessage = "Checking connection..."
-
+    
+    var authViewModel: AuthViewModel
+    @State private var taskPath = NavigationPath()
+    @State private var reminderPath = NavigationPath()
+    
     var body: some View {
-        Text(statusMessage)
-            .padding()
-            .task {
-                await testConnection()
+        TabView {
+            NavigationStack(path: $taskPath) {
+                TaskListView(authViewModel: authViewModel)
             }
-    }
+            .toolbarBackground(
+                LinearGradient(
+                    colors: [Color.brandPrimaryStart, Color.brandPrimaryEnd],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                for: .navigationBar
+            )
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .tabItem {
+                Label("Tasks", systemImage: "checkmark.circle.fill")
+            }
+            
+            NavigationStack(path: $reminderPath) {
+                ReminderListView(authViewModel: authViewModel)
+            }
+            .toolbarBackground(
+                LinearGradient(
+                    colors: [Color.brandPrimaryStart, Color.brandPrimaryEnd],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                for: .navigationBar
+            )
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .tabItem {
+                Label("Reminders", systemImage: "bell.fill")
+            }
+        }
+        .tint(Color.brandPrimaryEnd)
+        .onAppear {
+            let appearance = UITabBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = UIColor(Color.cardBackground)
 
-    func testConnection() async {
-        do {
-            // Tries to get the current session — will be nil if no user is logged in
-            // but it still confirms the client initialised correctly
-            let session = try await supabase.auth.session
-            statusMessage = "Connected! User: \(session.user.email ?? "unknown")"
-        } catch {
-            // No session just means no one is logged in — that's fine
-            statusMessage = "Supabase connected. No active session yet."
+            let normalAttrs: [NSAttributedString.Key: Any] = [
+                .foregroundColor: UIColor(Color.textSecondary)
+            ]
+            appearance.stackedLayoutAppearance.normal.titleTextAttributes = normalAttrs
+            appearance.stackedLayoutAppearance.normal.iconColor = UIColor(Color.textSecondary)
+
+            let selectedAttrs: [NSAttributedString.Key: Any] = [
+                .foregroundColor: UIColor(Color.brandPrimaryEnd)
+            ]
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = selectedAttrs
+            appearance.stackedLayoutAppearance.selected.iconColor = UIColor(Color.brandPrimaryEnd)
+
+            appearance.shadowColor = UIColor(Color.brandPrimaryEnd.opacity(0.15))
+
+            UITabBar.appearance().standardAppearance = appearance
+            UITabBar.appearance().scrollEdgeAppearance = appearance
         }
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(authViewModel: AuthViewModel())
 }

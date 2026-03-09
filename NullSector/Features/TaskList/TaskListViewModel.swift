@@ -11,16 +11,41 @@ import Foundation
 @Observable
 class TaskListViewModel {
 
+    // MARK: - Sort Options
+    enum SortOption: String, CaseIterable, Identifiable {
+        case createdNewest  = "Date Created (Newest)"
+        case createdOldest  = "Date Created (Oldest)"
+        case dueDateAsc     = "Due Date (Earliest)"
+        case dueDateDesc    = "Due Date (Latest)"
+        case titleAZ        = "Title (A–Z)"
+        case titleZA        = "Title (Z–A)"
+        case priority       = "Priority"
+
+        var id: String { rawValue }
+
+        var systemImage: String {
+            switch self {
+            case .createdNewest, .createdOldest: return "calendar"
+            case .dueDateAsc, .dueDateDesc:      return "clock"
+            case .titleAZ, .titleZA:             return "textformat.abc"
+            case .priority:                      return "exclamationmark.circle"
+            }
+        }
+    }
+
     // MARK: - State
     var tasks: [TodoTask] = []
     var isLoading: Bool = false
     var errorMessage: String? = nil
     var searchText: String = ""
-    var showCompleted: Bool = true
+    var showCompleted: Bool = false
+    var sortOption: SortOption = .createdNewest
+    var taskPendingDelete: TodoTask? = nil
+    var showDeleteConfirmation: Bool = false
 
     private let taskService: TaskService
     private let notificationService: NotificationService
-    
+
     init(
         taskService: TaskService? = nil,
         notificationService: NotificationService? = nil
@@ -37,7 +62,8 @@ class TaskListViewModel {
         do {
             tasks = try await taskService.getTasks(
                 searchText: searchText,
-                showCompleted: showCompleted
+                showCompleted: showCompleted,
+                sortOption: sortOption
             )
         } catch {
             errorMessage = error.localizedDescription
@@ -70,5 +96,24 @@ class TaskListViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    // MARK: - Request Delete
+    func requestDelete(_ task: TodoTask) {
+        taskPendingDelete = task
+        showDeleteConfirmation = true
+    }
+
+    // MARK: - Confirm Delete
+    func confirmDelete() async {
+        guard let task = taskPendingDelete else { return }
+        await deleteTask(task)
+        taskPendingDelete = nil
+    }
+
+    // MARK: - Cancel Delete
+    func cancelDelete() {
+        taskPendingDelete = nil
+        showDeleteConfirmation = false
     }
 }

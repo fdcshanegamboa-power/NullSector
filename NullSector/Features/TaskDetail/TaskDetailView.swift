@@ -83,7 +83,7 @@ struct TaskDetailView: View {
                     .foregroundStyle(Color.brandPrimaryEnd)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
-                    .background(Color.brandPrimaryEnd.opacity(0.1))
+                    .background(Color.white.opacity(0.8))
                     .clipShape(Capsule())
                 }
             }
@@ -105,7 +105,6 @@ struct TaskDetailView: View {
     private var heroCard: some View {
         VStack(alignment: .leading, spacing: 14) {
 
-            // Status pill
             HStack {
                 HStack(spacing: 6) {
                     Circle()
@@ -125,20 +124,17 @@ struct TaskDetailView: View {
 
                 Spacer()
 
-                // Priority badge if set
                 if let priority = viewModel.task.priority {
                     PriorityBadgeView(priority: priority)
                 }
             }
 
-            // Title
             Text(viewModel.task.title)
                 .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.textPrimary)
                 .strikethrough(viewModel.task.isCompleted, color: Color.textSecondary)
                 .opacity(viewModel.task.isCompleted ? 0.7 : 1.0)
 
-            // Due date inline if set
             if let dueDate = viewModel.task.dueDate {
                 let isOverdue = dueDate < Date() && !viewModel.task.isCompleted
                 HStack(spacing: 6) {
@@ -198,7 +194,7 @@ struct TaskDetailView: View {
                         icon: "bell.fill",
                         title: "Reminder",
                         value: formatDate(reminderAt),
-                        iconColor: .purple
+                        iconColor: Color.brandPrimaryStart
                     )
                 }
 

@@ -1,44 +1,43 @@
 //
-//  TaskListView.swift
+//  ReminderListView.swift
 //  NullSector
 //
-//  Created by Shane Gamboa - INTERN on 3/6/26.
+//  Created by Shane Gamboa - INTERN on 3/9/26.
 //
 
 import SwiftUI
 
-struct TaskListView: View {
+struct ReminderListView: View {
 
-    @State private var viewModel = TaskListViewModel()
-    @State private var showAddTask: Bool = false
-    @State private var taskToEdit: TodoTask? = nil
-    @State private var selectedTask: TodoTask? = nil
+    @State private var viewModel = ReminderListViewModel()
+    @State private var showAddReminder: Bool = false
+    @State private var reminderToEdit: Reminder? = nil
+    @State private var selectedReminder: Reminder? = nil
     
 
     var authViewModel: AuthViewModel
 
     var body: some View {
         ZStack {
-            // Background
             Color.backgroundLight.ignoresSafeArea()
-            
+
             Group {
-                if viewModel.isLoading && viewModel.tasks.isEmpty {
+                if viewModel.isLoading && viewModel.reminders.isEmpty {
                     loadingView
-                } else if viewModel.tasks.isEmpty {
+                } else if viewModel.reminders.isEmpty {
                     emptyStateView
                 } else {
-                    taskList
+                    reminderList
                 }
             }
-            
+
             // MARK: - Floating Action Button
             VStack {
                 Spacer()
                 HStack {
                     Spacer()
                     Button {
-                        showAddTask = true
+                        showAddReminder = true
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 22, weight: .semibold))
@@ -53,34 +52,33 @@ struct TaskListView: View {
                 }
             }
         }
-        .navigationTitle("My Tasks")
+        .navigationTitle("My Reminders")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
+            // MARK: - Profile Menu
             ToolbarItem(placement: .topBarLeading) {
                 ProfileMenuView(user: authViewModel.currentUser) {
-                    Task {
-                        await authViewModel.signOut()
-                    }
+                    Task { await authViewModel.signOut() }
                 }
             }
-            
+
             // MARK: - Filter + Sort Menu
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Toggle(isOn: $viewModel.showCompleted) {
-                        Label("Show Completed", systemImage: viewModel.showCompleted ? "checkmark.circle.fill" : "checkmark.circle")
+                    Toggle(isOn: $viewModel.showDismissed) {
+                        Label("Show Dismissed", systemImage: viewModel.showDismissed ? "checkmark.circle.fill" : "checkmark.circle")
                     }
-                    .onChange(of: viewModel.showCompleted) {
-                        Task { await viewModel.fetchTasks() }
+                    .onChange(of: viewModel.showDismissed) {
+                        Task { await viewModel.fetchReminders() }
                     }
 
                     Divider()
 
                     Menu {
-                        ForEach(TaskListViewModel.SortOption.allCases) { option in
+                        ForEach(ReminderListViewModel.SortOption.allCases) { option in
                             Button {
                                 viewModel.sortOption = option
-                                Task { await viewModel.fetchTasks() }
+                                Task { await viewModel.fetchReminders() }
                             } label: {
                                 Label(
                                     option.rawValue,
@@ -94,7 +92,7 @@ struct TaskListView: View {
                     }
 
                 } label: {
-                    let isFiltered = viewModel.showCompleted || viewModel.sortOption != .createdNewest
+                    let isFiltered = viewModel.showDismissed || viewModel.sortOption != .remindAtAsc
                     Image(systemName: isFiltered
                           ? "line.3.horizontal.decrease.circle.fill"
                           : "line.3.horizontal.decrease.circle")
@@ -103,27 +101,21 @@ struct TaskListView: View {
                 }
             }
         }
-        .searchable(text: $viewModel.searchText, prompt: "Search tasks")
+        .searchable(text: $viewModel.searchText, prompt: "Search reminders")
         .onChange(of: viewModel.searchText) {
-            Task { await viewModel.fetchTasks() }
+            Task { await viewModel.fetchReminders() }
         }
         .refreshable {
-            await viewModel.fetchTasks()
+            await viewModel.fetchReminders()
         }
-        .sheet(item: $taskToEdit) { task in
-            TaskFormView(task: task) {
-                await viewModel.fetchTasks()
-            }
+        .sheet(item: $reminderToEdit) { reminder in
+            ReminderFormView(reminder: reminder) { await viewModel.fetchReminders() }
         }
-        .sheet(isPresented: $showAddTask) {
-            TaskFormView {
-                await viewModel.fetchTasks()
-            }
+        .sheet(isPresented: $showAddReminder) {
+            ReminderFormView { await viewModel.fetchReminders() }
         }
-        .navigationDestination(item: $selectedTask) { task in
-            TaskDetailView(task: task) {
-                await viewModel.fetchTasks()
-            }
+        .navigationDestination(item: $selectedReminder) { reminder in
+            ReminderDetailView(reminder: reminder) { await viewModel.fetchReminders() }
         }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.errorMessage = nil }
@@ -131,45 +123,38 @@ struct TaskListView: View {
             Text(viewModel.errorMessage ?? "")
         }
         .confirmationDialog(
-            "Delete Task",
+            "Delete Reminder",
             isPresented: $viewModel.showDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete \"\(viewModel.taskPendingDelete?.title ?? "")\"", role: .destructive) {
+            Button("Delete Reminder", role: .destructive) {
                 Task { await viewModel.confirmDelete() }
             }
-            Button("Cancel", role: .cancel) {
-                viewModel.cancelDelete()
-            }
+            Button("Cancel", role: .cancel) { viewModel.cancelDelete() }
         } message: {
             Text("This action cannot be undone.")
         }
         .task {
-            await viewModel.fetchTasks()
+            await viewModel.fetchReminders()
         }
     }
 
-    // MARK: - Task List
-    private var taskList: some View {
+    // MARK: - Reminder List
+    private var reminderList: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                ForEach(viewModel.tasks) { task in
-                    TaskRowView(
-                        task: task,
-                        onToggle: {
-                            Task { await viewModel.toggleCompletion(task: task) }
-                        },
-                        onEdit: {
-                            taskToEdit = task
-                        },
-                        onDelete: {
-                            viewModel.requestDelete(task)
-                        }
+                ForEach(viewModel.reminders) { reminder in
+                    ReminderRowView(
+                        reminder: reminder,
+                        onDismiss: { Task { await viewModel.dismissReminder(reminder) } },
+                        onRestore: { Task { await viewModel.restoreReminder(reminder) } },
+                        onEdit: { reminderToEdit = reminder },
+                        onDelete: { viewModel.requestDelete(reminder) }
                     )
                     .padding(.horizontal, 16)
                     .padding(.vertical, 5)
                     .contentShape(Rectangle())
-                    .onTapGesture { selectedTask = task }
+                    .onTapGesture { selectedReminder = reminder }
                     .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -185,32 +170,31 @@ struct TaskListView: View {
                     .fill(Color.brandGradient)
                     .frame(width: 120, height: 120)
                     .opacity(0.15)
-                
-                Image(systemName: "checkmark.circle.fill")
+
+                Image(systemName: "bell.fill")
                     .font(.system(size: 64))
                     .foregroundStyle(Color.brandGradient)
             }
 
             VStack(spacing: 8) {
-                Text("No Tasks Yet")
+                Text("No Reminders Yet")
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundStyle(Color.textPrimary)
 
-                Text("Tap the + button to add your first task\nand start organizing your day.")
+                Text("Tap the + button to create your first reminder\nand never forget important things.")
                     .font(.subheadline)
                     .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
             }
-            
+
             Button {
-                showAddTask = true
+                showAddReminder = true
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill")
-                    Text("Create Task")
-                        .fontWeight(.semibold)
+                    Text("Create Reminder").fontWeight(.semibold)
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 12)
@@ -223,15 +207,15 @@ struct TaskListView: View {
         }
         .padding()
     }
-    
+
     // MARK: - Loading View
     private var loadingView: some View {
         VStack(spacing: 20) {
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(Color.brandPrimaryEnd)
-            
-            Text("Loading tasks...")
+
+            Text("Loading reminders...")
                 .font(.subheadline)
                 .foregroundStyle(Color.textSecondary)
         }

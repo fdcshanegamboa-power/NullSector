@@ -11,9 +11,18 @@ struct TaskRowView: View {
 
     let task: TodoTask
     let onToggle: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: 0) {
+
+            // MARK: - Priority Color Bar
+            RoundedRectangle(cornerRadius: 3)
+                .fill(task.priority?.color ?? Color.textSecondary.opacity(0.15))
+                .frame(width: 4)
+                .padding(.vertical, 4)
+                .padding(.trailing, 12)
 
             // MARK: - Checkbox
             Button(action: onToggle) {
@@ -21,13 +30,15 @@ struct TaskRowView: View {
                     Circle()
                         .fill(task.isCompleted ? Color.successGreen.opacity(0.1) : Color.gray.opacity(0.05))
                         .frame(width: 36, height: 36)
-                    
+
                     Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                         .font(.title3)
                         .foregroundStyle(task.isCompleted ? Color.successGreen : Color.textSecondary)
+                        .contentTransition(.symbolEffect(.replace))
                 }
             }
             .buttonStyle(.plain)
+            .padding(.trailing, 12)
 
             // MARK: - Content
             VStack(alignment: .leading, spacing: 8) {
@@ -38,6 +49,7 @@ struct TaskRowView: View {
                     .fontWeight(.semibold)
                     .strikethrough(task.isCompleted, color: Color.textSecondary)
                     .foregroundStyle(task.isCompleted ? Color.textSecondary : Color.textPrimary)
+                    .lineLimit(2)
 
                 // Description
                 if let description = task.description, !description.isEmpty {
@@ -57,9 +69,9 @@ struct TaskRowView: View {
 
                     // Due Date
                     if let dueDate = task.dueDate {
-                        DueDateLabelView(date: dueDate)
+                        DueDateLabelView(date: dueDate, isCompleted: task.isCompleted)
                     }
-                    
+
                     // Reminder indicator
                     if task.reminderAt != nil {
                         HStack(spacing: 3) {
@@ -76,19 +88,17 @@ struct TaskRowView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                 }
-                
+
                 // MARK: - Metadata Row
                 HStack(spacing: 12) {
-                    // Created date
                     HStack(spacing: 4) {
                         Image(systemName: "clock")
                             .font(.caption)
                         Text(formatRelativeDate(task.createdAt))
                             .font(.caption)
                     }
-                    .foregroundStyle(Color.textSecondary.opacity(0.8))
-                    
-                    // Updated indicator
+                    .foregroundStyle(Color.textSecondary.opacity(0.7))
+
                     if let updatedAt = task.updatedAt, updatedAt > task.createdAt {
                         HStack(spacing: 4) {
                             Image(systemName: "arrow.clockwise")
@@ -96,14 +106,14 @@ struct TaskRowView: View {
                             Text("Updated")
                                 .font(.caption)
                         }
-                        .foregroundStyle(Color.textSecondary.opacity(0.8))
+                        .foregroundStyle(Color.textSecondary.opacity(0.7))
                     }
                 }
             }
 
             Spacer()
-            
-            // Chevron indicator
+
+            // Chevron
             Image(systemName: "chevron.right")
                 .font(.caption)
                 .fontWeight(.semibold)
@@ -112,9 +122,36 @@ struct TaskRowView: View {
         }
         .padding(16)
         .opacity(task.isCompleted ? 0.7 : 1.0)
+        // MARK: - Swipe Left: Delete + Edit
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label("Delete", systemImage: "trash.fill")
+            }
+
+            Button {
+                onEdit()
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(.blue)
+        }
+        // MARK: - Swipe Right: Toggle Complete
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button {
+                onToggle()
+            } label: {
+                Label(
+                    task.isCompleted ? "Undo" : "Done",
+                    systemImage: task.isCompleted ? "arrow.uturn.backward" : "checkmark"
+                )
+            }
+            .tint(task.isCompleted ? .orange : Color.successGreen)
+        }
     }
-    
-    // MARK: - Helper Functions
+
+    // MARK: - Helpers
     private func formatRelativeDate(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short

@@ -109,7 +109,7 @@ struct LoginView: View {
                                 .foregroundStyle(Color(red: 0.55, green: 0.55, blue: 0.62))
                                 .padding(.top, 28)
 
-                            TextField("", text: $email)
+                            TextField("Enter your email", text: $email)
                                 .keyboardType(.emailAddress)
                                 .autocapitalization(.none)
                                 .autocorrectionDisabled()
@@ -134,9 +134,9 @@ struct LoginView: View {
                             HStack {
                                 Group {
                                     if isPasswordVisible {
-                                        TextField("", text: $password)
+                                        TextField("Enter your password", text: $password)
                                     } else {
-                                        SecureField("", text: $password)
+                                        SecureField("Enter your password", text: $password)
                                     }
                                 }
                                 .font(.system(size: 15))

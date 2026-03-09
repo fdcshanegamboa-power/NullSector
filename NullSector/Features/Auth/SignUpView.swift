@@ -130,7 +130,7 @@ struct SignUpView: View {
                             .foregroundStyle(Color(red: 0.55, green: 0.55, blue: 0.62))
                             .padding(.top, 24)
 
-                        TextField("", text: $email)
+                        TextField("Enter your email", text: $email)
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .autocorrectionDisabled()
@@ -155,9 +155,9 @@ struct SignUpView: View {
                         HStack {
                             Group {
                                 if isPasswordVisible {
-                                    TextField("", text: $password)
+                                    TextField("Enter your password", text: $password)
                                 } else {
-                                    SecureField("", text: $password)
+                                    SecureField("Enter your password", text: $password)
                                 }
                             }
                             .font(.system(size: 15))
@@ -206,9 +206,9 @@ struct SignUpView: View {
                         HStack {
                             Group {
                                 if isConfirmVisible {
-                                    TextField("", text: $confirmPassword)
+                                    TextField("Confirm your password", text: $confirmPassword)
                                 } else {
-                                    SecureField("", text: $confirmPassword)
+                                    SecureField("Confirm your password", text: $confirmPassword)
                                 }
                             }
                             .font(.system(size: 15))
